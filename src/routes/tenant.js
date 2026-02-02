@@ -5,7 +5,7 @@ const dbConnector = require("../middleware/dbConnector");
 
 // Change tenant
 router.post(
-  "/:flatId/tenant-history",
+  "/:flatId/change-tenant",
   dbConnector,
   tenantController.changeTenant
 );

@@ -3,6 +3,7 @@ const Flat = require("../models/Flat");
 
 exports.transferOwnership = async (req, res) => {
   try {
+      console.log("role", req.user.role)
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }

@@ -12,18 +12,18 @@ exports.createUserForFlat = async (req, res) => {
         res,
         403,
         "NOT_AUTHORIZED",
-        "Only admin can create users",
+        "Only admin can create users"
       );
     }
 
     const { flatId, name, email, password, role, phoneno } = req.body;
 
-    if (!name || !email || !password || !role || !flatId) {
+    if (!name || !email || !password || !role) {
       return apiError(
         res,
         400,
         "MISSING_FIELDS",
-        "All required fields must be filled",
+        "All required fields must be filled"
       );
     }
 
@@ -36,7 +36,7 @@ exports.createUserForFlat = async (req, res) => {
         res,
         400,
         "INVALID_ROLE",
-        "Only owner or tenant role is allowed",
+        "Only owner or tenant role is allowed"
       );
     }
 
@@ -45,32 +45,36 @@ exports.createUserForFlat = async (req, res) => {
       return apiError(res, 409, "EMAIL_EXISTS", "Email is already registered");
     }
 
-    const flat = await req.models.Flat.findById(flatId);
-    if (!flat) {
-      return apiError(
-        res,
-        404,
-        "FLAT_NOT_FOUND",
-        "Selected flat does not exist",
-      );
-    }
+    // ✅ Only check flat if flatId is provided
+    let flat = null;
+    if (flatId) {
+      flat = await req.models.Flat.findById(flatId);
+      if (!flat) {
+        return apiError(
+          res,
+          404,
+          "FLAT_NOT_FOUND",
+          "Selected flat does not exist"
+        );
+      }
 
-    if (role === "owner" && flat.ownerId) {
-      return apiError(
-        res,
-        409,
-        "OWNER_EXISTS",
-        "This flat already has an owner",
-      );
-    }
+      if (role === "owner" && flat.ownerId) {
+        return apiError(
+          res,
+          409,
+          "OWNER_EXISTS",
+          "This flat already has an owner"
+        );
+      }
 
-    if (role === "tenant" && flat.tenantId) {
-      return apiError(
-        res,
-        409,
-        "TENANT_EXISTS",
-        "This flat already has a tenant",
-      );
+      if (role === "tenant" && flat.tenantId) {
+        return apiError(
+          res,
+          409,
+          "TENANT_EXISTS",
+          "This flat already has a tenant"
+        );
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -80,22 +84,25 @@ exports.createUserForFlat = async (req, res) => {
       email,
       passwordHash: hashedPassword,
       role,
-      flatId,
       phoneno,
       createdBy: req.user.id,
+      flatId: flatId || null, // ✅ store null if not provided
     });
 
     await user.save();
 
-    if (role === "owner") flat.ownerId = user._id;
-    if (role === "tenant") flat.tenantId = user._id;
+    // ✅ Only assign flat if provided
+    if (flat) {
+      if (role === "owner") flat.ownerId = user._id;
+      if (role === "tenant") flat.tenantId = user._id;
 
-    flat.status = "occupied";
-    await flat.save();
+      flat.status = "occupied";
+      await flat.save();
+    }
 
     res.status(201).json({
       success: true,
-      message: `${role} created and assigned successfully`,
+      message: `${role} created successfully${flat ? " and assigned to flat" : ""}`,
       userId: user._id,
     });
   } catch (err) {
@@ -106,7 +113,7 @@ exports.createUserForFlat = async (req, res) => {
         res,
         409,
         "DUPLICATE_KEY",
-        "Duplicate value detected (email or phone already exists)",
+        "Duplicate value detected (email or phone already exists)"
       );
     }
 
@@ -114,7 +121,7 @@ exports.createUserForFlat = async (req, res) => {
       res,
       500,
       "CREATE_USER_FAILED",
-      "Failed to create user. Please try again",
+      "Failed to create user. Please try again"
     );
   }
 };
@@ -174,7 +181,7 @@ exports.updateUser = async (req, res) => {
         res,
         403,
         "NOT_AUTHORIZED",
-        "Only admin can update users",
+        "Only admin can update users"
       );
     }
 
@@ -203,6 +210,22 @@ exports.updateUser = async (req, res) => {
     if (role) user.role = role;
     if (password) user.passwordHash = await bcrypt.hash(password, 10);
 
+    // ✅ Handle flat assignment
+    if (flatId) {
+      user.flatId = flatId;
+
+      const flat = await req.models.Flat.findById(flatId);
+      if (flat) {
+        if (role === "owner") flat.ownerId = user._id;
+        if (role === "tenant") flat.tenantId = user._id;
+        flat.status = "occupied";
+        await flat.save();
+      }
+    } else {
+      // If flatId is cleared, unassign user from any flat
+      user.flatId = null;
+    }
+
     await user.save();
 
     res.json({
@@ -212,7 +235,6 @@ exports.updateUser = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-
     return apiError(res, 500, "UPDATE_FAILED", "Failed to update user");
   }
 };
