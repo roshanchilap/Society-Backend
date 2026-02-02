@@ -589,6 +589,12 @@ exports.exportMaintenancePDF = async (req, res) => {
 
 exports.generateMaintenanceSlip = async (req, res) => {
   try {
+
+       const browser = await puppeteer.launch({
+      executablePath: puppeteer.executablePath("chrome"),
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
+
     const { maintenanceId } = req.params;
 
     // 1. Fetch maintenance record
