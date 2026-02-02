@@ -1,6 +1,7 @@
 const { Parser } = require("json2csv");
-const puppeteer = require("puppeteer");
+const numberToWords = require("number-to-words");
 const generateSlipNumber = require("../services/generateSlipNumber");
+const { chromium } = require("playwright");
 
 /* ----------------------------------
    Helper: get flat users
@@ -455,14 +456,12 @@ exports.exportMaintenancePDF = async (req, res) => {
       populate: { path: "ownerId", select: "name" },
     });
 
-    // Build beautified table rows
     const rowsHtml = records
       .map((r) => {
         const monthName = new Date(r.dueDate).toLocaleString("default", {
           month: "long",
         });
 
-        // Status badge
         const statusHtml =
           r.status === "paid"
             ? `<span style="color:#0a7c0a; font-weight:600;">Paid</span>`
@@ -486,61 +485,17 @@ exports.exportMaintenancePDF = async (req, res) => {
       <head>
         <meta charset="UTF-8" />
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 30px;
-            background: #f9fafb;
-          }
-
-          .title {
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            letter-spacing: 0.5px;
-            color: #1f2937;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            overflow: hidden;
-            background: white;
-          }
-
-          th {
-            background-color: #f3f4f6;
-            color: #374151;
-            padding: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-          }
-
-          td {
-            padding: 10px;
-            font-size: 14px;
-            color: #374151;
-            border-bottom: 1px solid #f0f0f0;
-          }
-
-          tr:nth-child(even) td {
-            background-color: #fafafa;
-          }
-
-          tr:last-child td {
-            border-bottom: none;
-          }
+          body { font-family: Arial, sans-serif; padding: 30px; background: #f9fafb; }
+          .title { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #1f2937; }
+          table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 8px; background: white; }
+          th { background-color: #f3f4f6; color: #374151; padding: 10px; font-size: 14px; font-weight: 600; text-align: left; border-bottom: 1px solid #e5e7eb; }
+          td { padding: 10px; font-size: 14px; color: #374151; border-bottom: 1px solid #f0f0f0; }
+          tr:nth-child(even) td { background-color: #fafafa; }
+          tr:last-child td { border-bottom: none; }
         </style>
       </head>
-
       <body>
         <div class="title">Maintenance Report</div>
-
         <table>
           <thead>
             <tr>
@@ -559,14 +514,14 @@ exports.exportMaintenancePDF = async (req, res) => {
       </html>
     `;
 
-const browser = await puppeteer.launch({
-  executablePath: "/usr/bin/chromium", // or /usr/bin/chromium-browser
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  headless: true,
-});
+    // ✅ Launch Playwright Chromium
+    const browser = await chromium.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: true,
+    });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle" });
 
     const pdfBuffer = await page.pdf({
       format: "A4",
@@ -621,15 +576,11 @@ exports.generateMaintenanceSlip = async (req, res) => {
       });
     }
 
-    // 4. DO NOT create SlipRegistry here
-    //    Only download the PDF
-
     // Build HTML
     const monthName = new Date(record.dueDate).toLocaleString("default", {
       month: "long",
     });
 
-    const numberToWords = require("number-to-words");
     const amountWords =
       numberToWords
         .toWords(record.amount)
@@ -690,24 +641,15 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
 <div class="row">
     <div>No. <b>${record.slipNumber}</b></div>
     <div><b>RECEIPT</b></div>
-    <div>Date: <b>${new Date().toLocaleDateString()}</b>
-</div>
+    <div>Date: <b>${new Date().toLocaleDateString()}</b></div>
 </div>
 
 <div style="margin-top: 15px;">
-
-    Received with thanks from Mr./Mrs. <b>${
-      record.flatId.ownerId?.name || "N/A"
-    }</b><br>
+    Received with thanks from Mr./Mrs. <b>${record.flatId.ownerId?.name || "N/A"}</b><br>
     <div style="display:flex;justify-content:space-between;">
-    <div>
-    Flat No. <b>${
-      record.flatId.flatNumber
-    }</b></div> <div style="text-align: right;">
-  Month <b>${monthName} ${record.cycleYear}</b>
-</div>
-</div>
-</b>
+      <div>Flat No. <b>${record.flatId.flatNumber}</b></div>
+      <div style="text-align: right;">Month <b>${monthName} ${record.cycleYear}</b></div>
+    </div>
 </div>
 
 <table>
@@ -717,23 +659,19 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
         <th colspan="2" style="width: 130px;">Amount</th>
     </tr>
     <tr>
-    <th></th>
-    <th></th>
-    <th>Rs.</th>
-    <th>Ps.</th>
-  </tr>
-
-
-    <tr><td>01.</td><td>Mainentance Charge / देखभाल शुल्क</td><td rowspan="15" style="vertical-align: top; text-align:right;">${
-      record.amount
-    }/-</td></tr>
+      <th></th>
+      <th></th>
+      <th>Rs.</th>
+      <th>Ps.</th>
+    </tr>
+    <tr><td>01.</td><td>Maintenance Charge / देखभाल शुल्क</td><td rowspan="15" style="vertical-align: top; text-align:right;">${record.amount}/-</td></tr>
     <tr><td>02.</td><td>Water Charges / पाणी पुरवठा वर्गणी</td></tr>
     <tr><td>03.</td><td>Service Charges / सेवा वर्गणी</td></tr>
     <tr><td>04.</td><td>Sinking Fund / आपत्कालीन निधी</td></tr>
     <tr><td>05.</td><td>Interest / Penalty / व्याज / दंड</td></tr>
     <tr><td>06.</td><td>Non-Occupancy Charges / गैरवस्ती सवलतीचे शुल्क</td></tr>
     <tr><td>07.</td><td>Transfer Charges / हस्तांतरण शुल्क</td></tr>
-    <tr><td>08.</td><td>Tranfer Fee / हस्तांतरण फी</td></tr>
+    <tr><td>08.</td><td>Transfer Fee / हस्तांतरण फी</td></tr>
     <tr><td>09.</td><td>Entrance Fee / प्रवेश फी</td></tr>
     <tr><td>10.</td><td>Electric Charges / वीजपुरवठा शुल्क</td></tr>
     <tr><td>11.</td><td>Share Money / शेअर रक्कम</td></tr>
@@ -741,7 +679,6 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
     <tr><td>13.</td><td>Donation / देणगी</td></tr>
     <tr><td>14.</td><td>Parking Charges / पार्किंग वर्गणी</td></tr>
     <tr><td>15.</td><td>Other Charges / इतर शुल्क</td></tr>
-
     <tr>
         <th colspan="2" style="text-align: right;">TOTAL</th>
         <th style="text-align:right;">${record.amount}/-</th>
@@ -753,25 +690,21 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
     <br><br><br>
     <div style="text-align:right; margin-top:30px; display:flex; justify-content:space-between;">
         <b>Chairman / Secretary / Treasurer</b>
-         <b>Receiver</b>
+        <b>Receiver</b>
     </div>
 </div>
 
 </body>
 </html>
-
     `;
 
-    // Generate PDF
-const browser = await puppeteer.launch({
-  executablePath: "/usr/bin/chromium", // or /usr/bin/chromium-browser
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  headless: true,
-});
-
-
+    // ✅ Generate PDF with Playwright
+    const browser = await chromium.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: true,
+    });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle" });
 
     const pdfBuffer = await page.pdf({
       format: "A4",
@@ -785,7 +718,6 @@ const browser = await puppeteer.launch({
       "Content-Disposition",
       `attachment; filename=slip_${record.slipNumber}.pdf`,
     );
-
     return res.send(pdfBuffer);
   } catch (err) {
     res.status(500).json({
