@@ -1,4 +1,8 @@
-buildCommand: |
-  npm install
-  npx playwright install chromium
-startCommand: npm start
+services:
+  - type: web
+    name: society
+    env: node
+    buildCommand: |
+      npm install
+      npx playwright install chromium
+    startCommand: npm start
