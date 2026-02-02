@@ -560,16 +560,10 @@ exports.exportMaintenancePDF = async (req, res) => {
       </html>
     `;
 
-const chromePath = computeExecutablePath({
-  cacheDir: "/opt/render/.cache/puppeteer",
-  browser: "chrome",
-  buildId: "143.0.7499.169" // match the version you saw in logs
-});
-
 const browser = await puppeteer.launch({
-  executablePath: chromePath,
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  headless: "new"
+  headless: true
 });
 
 
@@ -771,16 +765,10 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
     `;
 
     // Generate PDF
-const chromePath = computeExecutablePath({
-  cacheDir: "/opt/render/.cache/puppeteer",
-  browser: "chrome",
-  buildId: "143.0.7499.169" // match the version you saw in logs
-});
-
 const browser = await puppeteer.launch({
-  executablePath: chromePath,
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  headless: "new"
+  headless: true
 });
 
 
