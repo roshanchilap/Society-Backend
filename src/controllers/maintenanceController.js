@@ -1,7 +1,6 @@
 const { Parser } = require("json2csv");
 const puppeteer = require("puppeteer");
 const generateSlipNumber = require("../services/generateSlipNumber");
-const { computeExecutablePath } = require("@puppeteer/browsers");
 
 /* ----------------------------------
    Helper: get flat users
@@ -561,11 +560,10 @@ exports.exportMaintenancePDF = async (req, res) => {
     `;
 
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+  executablePath: puppeteer.executablePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
   headless: true
 });
-
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
@@ -766,7 +764,7 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
 
     // Generate PDF
 const browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+  executablePath: puppeteer.executablePath(),
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
   headless: true
 });
