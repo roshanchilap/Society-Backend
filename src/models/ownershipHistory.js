@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const User = require("../models/User");
+const User = require("./User");
 
 const OwnershipHistorySchema = new mongoose.Schema({
   flatId: { type: mongoose.Schema.Types.ObjectId, ref: "Flat", required: true },
