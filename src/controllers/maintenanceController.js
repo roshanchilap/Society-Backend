@@ -1,6 +1,7 @@
 const { Parser } = require("json2csv");
 const puppeteer = require("puppeteer");
 const generateSlipNumber = require("../services/generateSlipNumber");
+const { computeExecutablePath } = require("@puppeteer/browsers");
 
 /* ----------------------------------
    Helper: get flat users
