@@ -10,7 +10,7 @@ const SocietySchema = new mongoose.Schema({
 // master connection (points to global registry DB)
 const masterConn = mongoose.createConnection(process.env.MASTER_DB_URI, {
   maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
 });
 
 masterConn.on("connected", () =>
