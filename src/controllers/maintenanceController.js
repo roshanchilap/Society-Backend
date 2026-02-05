@@ -577,7 +577,7 @@ exports.generateMaintenanceSlip = async (req, res) => {
     }
 
     // Build HTML
-    const monthName = new Date(record.dueDate).toLocaleString("default", {
+    const monthName = new Date(record.dueDate).toLocaleString("en-IN", {
       month: "long",
     });
 
@@ -588,17 +588,18 @@ exports.generateMaintenanceSlip = async (req, res) => {
 
     const html = `
     <!DOCTYPE html>
-<html>
-<head>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
-<style>
+    <html lang="hi">
+    <head>
+    <meta charset="UTF-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
     body {
-        font-family: 'Noto Sans Devanagari', Arial, sans-serif
-        font-size: 14px;
-        width: 700px;
-        margin: 20px auto;
-        border: 1px solid #000;
-        padding: 20px;
+      font-family: 'Noto Sans Devanagari', 'Noto Sans', Arial, sans-serif;
+      font-size: 14px;
+      width: 700px;
+      margin: 20px auto;
+      border: 1px solid #000;
+      padding: 20px;
     }
     .title {
         text-align: center;
@@ -704,8 +705,11 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
       headless: true,
     });
+
     const page = await browser.newPage();
+
     await page.setContent(html, { waitUntil: "networkidle" });
+    await page.evaluateHandle("document.fonts.ready");
 
     const pdfBuffer = await page.pdf({
       format: "A4",
@@ -713,6 +717,7 @@ Plot No. 24, Sector 3, Karanjade, Panvel-410 206, Navi Mumbai.</div>
     });
 
     await browser.close();
+
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
