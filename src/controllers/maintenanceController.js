@@ -590,9 +590,10 @@ exports.generateMaintenanceSlip = async (req, res) => {
     <!DOCTYPE html>
 <html>
 <head>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari&display=swap" rel="stylesheet">
 <style>
     body {
-        font-family: Arial, sans-serif;
+        font-family: 'Noto Sans Devanagari', Arial, sans-serif
         font-size: 14px;
         width: 700px;
         margin: 20px auto;
